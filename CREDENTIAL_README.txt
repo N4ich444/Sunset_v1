@@ -1,0 +1,1 @@
+On Linux switch ~/.docker/config.json from 'credsStore' (compatible with docker desktop) to 'credstore' (compatible with docker CLI) and vice versa

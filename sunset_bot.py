@@ -75,7 +75,8 @@ async def launch(ctx, *args):
             #launches servelet using compose API instead of raw command like v3
             #docker.compose.up([f'server_{args[0]}'])
             if -1 < a < 4:
-                t = capturedList[a]
+                #t = capturedList[a]
+                t = threading.Thread(target=server_launch, args=(args[0],))
 
                 t.start()
             else:
@@ -104,12 +105,13 @@ async def exit(ctx, *args):
             # docker.compose.up([f'server_{args[0]}'])
 
             if -1 < a < 4:
-                t = capturedList[a]
+                #t = capturedList[a]
+                #t = threading.Thread(target=server_launch,args=(args[0],))
 
                 # THE ORDER IS IMPORTANT
                 # docker compose down stops the container, which frees up the thread running foundry
                 docker.compose.down(f'server_{a}')
-                t.join()
+                #t.join()
 
                 docker.compose.up([f'cleanup_{a}'])
                 docker.compose.down([f'cleanup_{a}'])
@@ -123,7 +125,9 @@ async def exit(ctx, *args):
     else:
         await ctx.send('invalid exit command, too many arguments')
 
-
+@bot.command()
+async def status(ctx):
+    await ctx.send(docker.ps())
 
 #botThread.start()
 #botThread.join()
