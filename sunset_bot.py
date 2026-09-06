@@ -3,15 +3,19 @@ import threading
 
 import discord
 from discord.ext import commands
+from discord.ext import tasks
 from python_on_whales import docker
+
+#still less lines of code then when we were under spring even thought this is a monolithic single python file
 
 
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
+#num of active instances
+activeInstances = 0
+launchFlag = False
 
-def bot_launch():
-    bot.run(tok.read())
 
 def server_launch(number):
     docker.compose.up([f'server_{number}'],build=True,force_recreate=True)
@@ -24,20 +28,38 @@ def server_exit(number):
 #runs discord bot
 #botThread = threading.Thread(target=bot_launch)
 
-#could be more compact w a for loop
-#thread is captured on launch
-tl0 = threading.Thread(target=server_launch,args=('0',))
-tl1 = threading.Thread(target=server_launch,args=('1',))
-tl2 = threading.Thread(target=server_launch,args=('2',))
-tl3 = threading.Thread(target=server_launch,args=('3',))
+def t_launcher(number):
+    t = threading.Thread(target=server_launch, args=(number,))
 
-#te1 = threading.Thread(target=server_exit,args=('0',))
-#te2 = threading.Thread(target=server_exit,args=('1',))
-#te3 = threading.Thread(target=server_exit,args=('2',))
-#te4 = threading.Thread(target=server_exit,args=('3',))
+    t.start()
 
-#captured thread list
-capturedList = [tl0, tl1, tl2, tl3]
+
+class LaunchButtonPanel(discord.ui.View):
+
+    def __init__(self, *, timeout=180):
+        self.launchDisable = False
+        super().__init__(timeout=timeout)
+
+    @discord.ui.button(label="Launch Server 0", style=discord.ButtonStyle.gray)
+    async def gray_button(self, button: discord.ui.Button, interaction: discord.Interaction):
+        #t_launcher(0)
+        await interaction.response.edit_message(content=f"This is an edited button response!")
+
+    @discord.ui.button(label="Launch Server 1", style=discord.ButtonStyle.gray)
+    async def gray_button(self, button: discord.ui.Button, interaction: discord.Interaction):
+        #t_launcher(1)
+        await interaction.response.edit_message(content=f"This is an edited button response!")
+
+    @discord.ui.button(label="Launch Server 2", style=discord.ButtonStyle.gray)
+    async def gray_button(self, button: discord.ui.Button, interaction: discord.Interaction):
+        #t_launcher(2)
+        await interaction.response.edit_message(content=f"This is an edited button response!")
+
+    @discord.ui.button(label="Launch Server 3", style=discord.ButtonStyle.gray)
+    async def gray_button(self, button: discord.ui.Button, interaction: discord.Interaction):
+        #t_launcher(3)
+        await interaction.response.edit_message(content=f"This is an edited button response!")
+
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
@@ -46,8 +68,7 @@ tok = open("token.txt", "r")
 
 
 
-
-
+"""Bot stuff starts here"""
 
 @bot.event
 async def on_ready():
@@ -56,6 +77,28 @@ async def on_ready():
 
     print(f'Logged in as {bot.user} (ID: {bot.user.id})')
     print('------')
+
+@bot.event
+async def setup_hook() -> None:
+    instance_monitor.start()
+
+#background task
+@tasks.loop(seconds=30)
+async def instance_monitor():
+    global activeInstances
+    #checks all server instances
+    instanceList = docker.ps(filters={('name', 'server_')})
+    currentInstances = len(instanceList)
+
+    print(f"Active Docker instances: {activeInstances}")
+
+
+    activeInstances = currentInstances
+
+@instance_monitor.before_loop
+async def wait_login():
+    await bot.wait_until_ready()
+
 
 #TODO: switch to hybrid_command once fully done
 @bot.command()
@@ -67,18 +110,22 @@ async def launch(ctx, *args):
 
 
     elif len(args) == 1:
-        #TODO: needs to verify if valid number
+
         if isdigit(args[0]):
             a = int(args[0])
 
             await ctx.send(f'placeholder launching screen: server {a} ')
             #launches servelet using compose API instead of raw command like v3
             #docker.compose.up([f'server_{args[0]}'])
+            # thread is captured on launch
             if -1 < a < 4:
-                #t = capturedList[a]
-                t = threading.Thread(target=server_launch, args=(args[0],))
 
-                t.start()
+                #t = threading.Thread(target=server_launch, args=(args[0],))
+
+                #t.start()
+                t_launcher(args[0])
+
+
             else:
                 await ctx.send('invalid server number. 0-3')
 
@@ -105,13 +152,12 @@ async def exit(ctx, *args):
             # docker.compose.up([f'server_{args[0]}'])
 
             if -1 < a < 4:
-                #t = capturedList[a]
-                #t = threading.Thread(target=server_launch,args=(args[0],))
+
 
                 # THE ORDER IS IMPORTANT
                 # docker compose down stops the container, which frees up the thread running foundry
                 docker.compose.down(f'server_{a}')
-                #t.join()
+
 
                 docker.compose.up([f'cleanup_{a}'])
                 docker.compose.down([f'cleanup_{a}'])
@@ -127,7 +173,8 @@ async def exit(ctx, *args):
 
 @bot.command()
 async def status(ctx):
-    await ctx.send(docker.ps())
+    await ctx.send(f"{len(docker.ps())} {docker.ps()}")
+
 
 #botThread.start()
 #botThread.join()
