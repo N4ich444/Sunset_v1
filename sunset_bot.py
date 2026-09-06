@@ -22,21 +22,21 @@ intents.members = True
 intents.message_content = True
 #num of active instances
 activeInstances = 0
-launchFlag = False
+
 PORT = 0
+globalStatus = [False,False,False,False]
 
 """Helpers and other things"""
 
 def server_launch(number):
     docker.compose.up([f'server_{number}'],build=True,force_recreate=True)
 
-#remember to join launch threads as it is captured
-def server_exit(number):
-    docker.compose.down([f'server_{number}'])
-    docker.compose.up([f'cleanup_{number}'])
-    docker.compose.down([f'cleanup_{number}'])
-#runs discord bot
-#botThread = threading.Thread(target=bot_launch)
+def update_status(number):
+    s = len(docker.ps(filters={('name',f'server_{number}')}))
+    if s > 0:
+        globalStatus[number] = True
+    else:
+        globalStatus[number] = False
 
 def t_launcher(number):
     #raise Exception("This is a test Error!")
@@ -52,22 +52,22 @@ class LaunchButtonPanel(discord.ui.View):
         self.launchDisable = False
         super().__init__(timeout=timeout)
 
-    @discord.ui.button(label="Launch Server 0", style=discord.ButtonStyle.green)
+    @discord.ui.button(label="Launch Server 0", style=discord.ButtonStyle.green, disabled=globalStatus[0])
     async def button_0(self, button: discord.ui.Button, interaction: discord.Interaction):
         #t_launcher(0)
         await interaction.response.edit_message(content=f"This is an edited button response!")
 
-    @discord.ui.button(label="Launch Server 1", style=discord.ButtonStyle.green)
+    @discord.ui.button(label="Launch Server 1", style=discord.ButtonStyle.green,  disabled=globalStatus[1])
     async def button_1(self, button: discord.ui.Button, interaction: discord.Interaction):
         #t_launcher(1)
         await interaction.response.edit_message(content=f"This is an edited button response!")
 
-    @discord.ui.button(label="Launch Server 2", style=discord.ButtonStyle.green)
+    @discord.ui.button(label="Launch Server 2", style=discord.ButtonStyle.green,  disabled=globalStatus[2])
     async def button_2(self, button: discord.ui.Button, interaction: discord.Interaction):
         #t_launcher(2)
         await interaction.response.edit_message(content=f"This is an edited button response!")
 
-    @discord.ui.button(label="Launch Server 3", style=discord.ButtonStyle.green)
+    @discord.ui.button(label="Launch Server 3", style=discord.ButtonStyle.green,  disabled=globalStatus[3])
     async def button_3(self, button: discord.ui.Button, interaction: discord.Interaction):
         #t_launcher(3)
         await interaction.response.edit_message(content=f"This is an edited button response!")
@@ -98,6 +98,7 @@ async def on_ready():
     print(f'Logged in as {bot.user} (ID: {bot.user.id})')
     print('------')
 
+#tapping into the setup hook
 @bot.event
 async def setup_hook() -> None:
     instance_monitor.start()
@@ -110,12 +111,15 @@ async def instance_monitor():
     #checks all server instances
     instanceList = docker.ps(filters={('name', 'server_')})
     currentInstances = len(instanceList)
+    for i in range(0, 4):
+        update_status(i)
 
-    print(f"Active Docker instances: {activeInstances}")
+    print(f"Active Docker instances: {activeInstances}\n Status: {globalStatus}")
 
     if currentInstances > activeInstances:
         channel = bot.get_channel(usableCID)
         await channel.send('Server Launched Successfully!')
+
 
 
 
@@ -154,8 +158,8 @@ async def launch(ctx, *args):
                     try:
                         t_launcher(args[0])
                     except Exception as e:
-                        channel = bot.get_channel(usableCID)
-                        await channel.send(f'Error launching server!\nDetails: ||{e}||')
+                        #channel = bot.get_channel(usableCID)
+                        await ctx.send(f'Error launching Server {a}!\nDetails: ||{e}||')
 
                 else:
                     await ctx.send(f'Server {a} has already been launched')
@@ -184,30 +188,35 @@ async def exit(ctx, *args):
         if isdigit(args[0]):
             a = int(args[0])
 
-            await ctx.send(f'placeholder exit screen: server {a} ')
+
             # launches servelet using compose API instead of raw command like v3
             # docker.compose.up([f'server_{args[0]}'])
 
             if -1 < a < 4:
+                #checks if server is still alive
                 isLaunched = len(docker.ps(filters={('name', f'server_{a}')}))
 
                 if isLaunched > 0:
+                    await ctx.send(f'Shutting down Server {a} ')
                     # THE ORDER IS IMPORTANT
                     # docker compose down stops the container, which frees up the thread running foundry
-                    docker.compose.down(f'server_{a}')
+                    try:
+                        docker.compose.down(f'server_{a}')
 
 
-                    docker.compose.up([f'cleanup_{a}'])
-                    docker.compose.down([f'cleanup_{a}'])
+                        docker.compose.up([f'cleanup_{a}'])
+                        docker.compose.down([f'cleanup_{a}'])
 
-                    isShutDown = len(docker.ps(filters={('name', f'server_{a}')}))
-                    isCleanedUp = len(docker.ps(filters={('name', f'cleanup_{a}')}))
-                    if isCleanedUp == 0 and isShutDown == 0:
-                        ctx.send(f'Server {a} has successfully shutdown')
-                    elif isCleanedUp > 0 and isShutDown == 0:
-                        ctx.send(f'WARNING! The cleanup service for Server {a} is still running! Manual intervention/Emergency Shutdown is required.')
-                    else:
-                        ctx.send(f'WARNING! Server {a} has not shutdown successfully. Manual intervention/Emergency Shutdown is required.')
+                        isShutDown = len(docker.ps(filters={('name', f'server_{a}')}))
+                        isCleanedUp = len(docker.ps(filters={('name', f'cleanup_{a}')}))
+                        if isCleanedUp == 0 and isShutDown == 0:
+                            await ctx.send(f'Server {a} has successfully shutdown')
+                        elif isCleanedUp > 0 and isShutDown == 0:
+                            await ctx.send(f'WARNING! The cleanup service for Server {a} is still running! Manual intervention/Emergency shutdown is required.')
+                        else:
+                            await ctx.send(f'WARNING! Server {a} has not shutdown successfully. Manual intervention/Emergency shutdown is required.')
+                    except Exception as e:
+                        await ctx.send(f'Error shutting down Server {a}!\nDetails: ||{e}||')
                 else:
                     await ctx.send(f'Server {a} is not running')
 
@@ -222,20 +231,37 @@ async def exit(ctx, *args):
 
 @bot.command()
 async def status(ctx):
-    await ctx.send(f"{len(docker.ps())} {docker.ps()}")
+    for i in range(0, 4):
+        update_status(i)
+    s = ""
+    ctr = 0
+    for b in globalStatus:
+        if b:
+            s = s + f'Server {ctr}: Online\n'
+        else:
+            s = s + f'Server {ctr}: Offline\n'
+        ctr += 1
+
+    await ctx.send(f'{s}Details: ||{docker.ps()}||')
+
+    #await ctx.send(f"{len(docker.ps())} {docker.ps()}")
 
 @bot.command()
 async def emergency_shutdown(ctx):
-    channel = bot.get_channel(usableCID)
-    await channel.send(f'Emergency Shutdown activated by user "{ctx.message.author}". Killing all Docker containers. Misuse will be punished.')
-    for i in range(0,4):
-        docker.compose.kill([f'cleanup_{i}'])
-    for i in range(0,4):
-        docker.compose.kill([f'server_{i}'])
+    #channel = bot.get_channel(usableCID)
+    await ctx.send(f'Emergency Shutdown activated by user {ctx.message.author.mention}. Killing all Docker containers. Misuse will be punished.')
+    try:
+        for i in range(0,4):
+            docker.compose.kill([f'cleanup_{i}'])
+        for i in range(0,4):
+            docker.compose.kill([f'server_{i}'])
 
 
 
-    await ctx.send(f'Emergency Shutdown Completed! {ctx.message.author.mention}')
+        await ctx.send(f'Emergency shutdown completed!')
+
+    except Exception as e:
+        await ctx.send(f'Error shutting down!\n Details: ||{e}||')
 
 
 #botThread.start()
