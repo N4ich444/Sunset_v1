@@ -66,6 +66,9 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 #reads token.txt
 tok = open("token.txt", "r")
 
+#channel id that messages will be sent
+channelID = open("channelID.txt", "r")
+usableCID = int(channelID.read())
 
 
 """Bot stuff starts here"""
@@ -82,7 +85,8 @@ async def on_ready():
 async def setup_hook() -> None:
     instance_monitor.start()
 
-#background task
+#monitors docker instances
+
 @tasks.loop(seconds=30)
 async def instance_monitor():
     global activeInstances
@@ -91,6 +95,11 @@ async def instance_monitor():
     currentInstances = len(instanceList)
 
     print(f"Active Docker instances: {activeInstances}")
+
+    if currentInstances > activeInstances:
+        channel = bot.get_channel(usableCID)
+        await channel.send('placeholder: server launched')
+
 
 
     activeInstances = currentInstances
@@ -106,7 +115,7 @@ async def launch(ctx, *args):
 
 
     if len(args) < 1:
-        await ctx.send(f'placeholder launch panel ')
+        await ctx.send(f'Launch a Server', view=LaunchButtonPanel())
 
 
     elif len(args) == 1:
@@ -114,26 +123,32 @@ async def launch(ctx, *args):
         if isdigit(args[0]):
             a = int(args[0])
 
-            await ctx.send(f'placeholder launching screen: server {a} ')
+
             #launches servelet using compose API instead of raw command like v3
             #docker.compose.up([f'server_{args[0]}'])
             # thread is captured on launch
             if -1 < a < 4:
-
+                isLaunched = len(docker.ps(filters={('name',f'server_{a}')}))
                 #t = threading.Thread(target=server_launch, args=(args[0],))
 
                 #t.start()
-                t_launcher(args[0])
+                if isLaunched == 0:
+                    await ctx.send(f'Launching Server {a}. Please wait...')
+                    t_launcher(args[0])
+                else:
+                    await ctx.send(f'Server {a} has already been launched')
+
+
 
 
             else:
-                await ctx.send('invalid server number. 0-3')
+                await ctx.send(f'Invalid Server number {a}. Valid range: 0-3')
 
         else:
-            await ctx.send('invalid server number, please only input numbers.')
+            await ctx.send('Invalid Server number, please only input numbers.')
 
     else:
-        await ctx.send('invalid launch command, too many arguments')
+        await ctx.send('Invalid Launch command, too many arguments')
 
 
 @bot.command()
