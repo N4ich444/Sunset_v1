@@ -227,7 +227,7 @@ async def status(ctx):
 @bot.command()
 async def emergency_shutdown(ctx):
     channel = bot.get_channel(usableCID)
-    await channel.send(f'Emergency Shutdown activated. Killing all Docker containers. Misuse will be punished.')
+    await channel.send(f'Emergency Shutdown activated by user "{ctx.message.author}". Killing all Docker containers. Misuse will be punished.')
     for i in range(0,4):
         docker.compose.kill([f'cleanup_{i}'])
     for i in range(0,4):
@@ -235,7 +235,7 @@ async def emergency_shutdown(ctx):
 
 
 
-    await ctx.send(f'Emergency Shutdown Completed! @{ctx.message.author}')
+    await ctx.send(f'Emergency Shutdown Completed! {ctx.message.author.mention}')
 
 
 #botThread.start()
