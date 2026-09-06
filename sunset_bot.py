@@ -6,8 +6,16 @@ from discord.ext import commands
 from discord.ext import tasks
 from python_on_whales import docker
 
+#Alan Kuang 2026
 #still less lines of code then when we were under spring even thought this is a monolithic single python file
 
+
+"""
+most of the documentation I used can be found on 
+https://discordpy.readthedocs.io/en/stable/index.html, 
+https://gabrieldemarmiesse.github.io/python-on-whales/
+https://docs.docker.com/
+"""
 
 intents = discord.Intents.default()
 intents.members = True
@@ -16,6 +24,8 @@ intents.message_content = True
 activeInstances = 0
 launchFlag = False
 PORT = 0
+
+"""Helpers and other things"""
 
 def server_launch(number):
     docker.compose.up([f'server_{number}'],build=True,force_recreate=True)
@@ -29,6 +39,8 @@ def server_exit(number):
 #botThread = threading.Thread(target=bot_launch)
 
 def t_launcher(number):
+    #raise Exception("This is a test Error!")
+
     t = threading.Thread(target=server_launch, args=(number,))
 
     t.start()
@@ -129,18 +141,22 @@ async def launch(ctx, *args):
             a = int(args[0])
 
 
-            #launches servelet using compose API instead of raw command like v3
-            #docker.compose.up([f'server_{args[0]}'])
+            # launches servelet using compose API instead of raw command like v3
             # thread is captured on launch
             if -1 < a < 4:
                 isLaunched = len(docker.ps(filters={('name',f'server_{a}')}))
-                #t = threading.Thread(target=server_launch, args=(args[0],))
+
 
                 #t.start()
                 if isLaunched == 0:
                     link = f'{url}:{PORT + a}'
                     await ctx.send(f'Launching Server {a} with the link {link}. Please wait...')
-                    t_launcher(args[0])
+                    try:
+                        t_launcher(args[0])
+                    except Exception as e:
+                        channel = bot.get_channel(usableCID)
+                        await channel.send(f'Error launching server!\nDetails: ||{e}||')
+
                 else:
                     await ctx.send(f'Server {a} has already been launched')
 
@@ -183,6 +199,15 @@ async def exit(ctx, *args):
 
                     docker.compose.up([f'cleanup_{a}'])
                     docker.compose.down([f'cleanup_{a}'])
+
+                    isShutDown = len(docker.ps(filters={('name', f'server_{a}')}))
+                    isCleanedUp = len(docker.ps(filters={('name', f'cleanup_{a}')}))
+                    if isCleanedUp == 0 and isShutDown == 0:
+                        ctx.send(f'Server {a} has successfully shutdown')
+                    elif isCleanedUp > 0 and isShutDown == 0:
+                        ctx.send(f'WARNING! The cleanup service for Server {a} is still running! Manual intervention/Emergency Shutdown is required.')
+                    else:
+                        ctx.send(f'WARNING! Server {a} has not shutdown successfully. Manual intervention/Emergency Shutdown is required.')
                 else:
                     await ctx.send(f'Server {a} is not running')
 
@@ -198,6 +223,19 @@ async def exit(ctx, *args):
 @bot.command()
 async def status(ctx):
     await ctx.send(f"{len(docker.ps())} {docker.ps()}")
+
+@bot.command()
+async def emergency_shutdown(ctx):
+    channel = bot.get_channel(usableCID)
+    await channel.send(f'Emergency Shutdown activated. Killing all Docker containers. Misuse will be punished.')
+    for i in range(0,4):
+        docker.compose.kill([f'cleanup_{i}'])
+    for i in range(0,4):
+        docker.compose.kill([f'server_{i}'])
+
+
+
+    await ctx.send(f'Emergency Shutdown Completed! @{ctx.message.author}')
 
 
 #botThread.start()
