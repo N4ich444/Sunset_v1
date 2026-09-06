@@ -28,6 +28,7 @@ globalStatus = [False,False,False,False]
 
 """Helpers and other things"""
 
+#TODO: make it so that it does not have to force create every time
 def server_launch(number):
     docker.compose.up([f'server_{number}'],build=True,force_recreate=True)
 
@@ -38,36 +39,39 @@ def update_status(number):
     else:
         globalStatus[number] = False
 
-def t_launcher(number):
+def thread_launcher(number):
     #raise Exception("This is a test Error!")
 
     t = threading.Thread(target=server_launch, args=(number,))
 
     t.start()
 
-
+#TODO: buttons
 class LaunchButtonPanel(discord.ui.View):
 
     def __init__(self, *, timeout=180):
-        self.launchDisable = False
         super().__init__(timeout=timeout)
 
-    @discord.ui.button(label="Launch Server 0", style=discord.ButtonStyle.green, disabled=globalStatus[0])
+    @discord.ui.button(label="Launch Server 0", style=discord.ButtonStyle.green)
     async def button_0(self, button: discord.ui.Button, interaction: discord.Interaction):
-        #t_launcher(0)
-        await interaction.response.edit_message(content=f"This is an edited button response!")
+        button.disabled = True
+        link = f'{url}:{PORT}'
+        await interaction.response.edit_message(content=f"Launching Server 0 with the link {link}. Please wait...")
+        thread_launcher(0)
 
-    @discord.ui.button(label="Launch Server 1", style=discord.ButtonStyle.green,  disabled=globalStatus[1])
+
+    @discord.ui.button(label="Launch Server 1", style=discord.ButtonStyle.green)
     async def button_1(self, button: discord.ui.Button, interaction: discord.Interaction):
         #t_launcher(1)
+        button.disabled = True
         await interaction.response.edit_message(content=f"This is an edited button response!")
 
-    @discord.ui.button(label="Launch Server 2", style=discord.ButtonStyle.green,  disabled=globalStatus[2])
+    @discord.ui.button(label="Launch Server 2", style=discord.ButtonStyle.green)
     async def button_2(self, button: discord.ui.Button, interaction: discord.Interaction):
         #t_launcher(2)
         await interaction.response.edit_message(content=f"This is an edited button response!")
 
-    @discord.ui.button(label="Launch Server 3", style=discord.ButtonStyle.green,  disabled=globalStatus[3])
+    @discord.ui.button(label="Launch Server 3", style=discord.ButtonStyle.green)
     async def button_3(self, button: discord.ui.Button, interaction: discord.Interaction):
         #t_launcher(3)
         await interaction.response.edit_message(content=f"This is an edited button response!")
@@ -136,6 +140,9 @@ async def launch(ctx, *args):
 
 
     if len(args) < 1:
+        for i in range(0, 4):
+            update_status(i)
+
         await ctx.send(f'Launch a Server', view=LaunchButtonPanel())
 
 
@@ -156,7 +163,7 @@ async def launch(ctx, *args):
                     link = f'{url}:{PORT + a}'
                     await ctx.send(f'Launching Server {a} with the link {link}. Please wait...')
                     try:
-                        t_launcher(args[0])
+                        thread_launcher(args[0])
                     except Exception as e:
                         #channel = bot.get_channel(usableCID)
                         await ctx.send(f'Error launching Server {a}!\nDetails: ||{e}||')
