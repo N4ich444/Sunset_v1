@@ -15,7 +15,7 @@ intents.message_content = True
 #num of active instances
 activeInstances = 0
 launchFlag = False
-
+PORT = 0
 
 def server_launch(number):
     docker.compose.up([f'server_{number}'],build=True,force_recreate=True)
@@ -40,23 +40,23 @@ class LaunchButtonPanel(discord.ui.View):
         self.launchDisable = False
         super().__init__(timeout=timeout)
 
-    @discord.ui.button(label="Launch Server 0", style=discord.ButtonStyle.gray)
-    async def gray_button(self, button: discord.ui.Button, interaction: discord.Interaction):
+    @discord.ui.button(label="Launch Server 0", style=discord.ButtonStyle.green)
+    async def button_0(self, button: discord.ui.Button, interaction: discord.Interaction):
         #t_launcher(0)
         await interaction.response.edit_message(content=f"This is an edited button response!")
 
-    @discord.ui.button(label="Launch Server 1", style=discord.ButtonStyle.gray)
-    async def gray_button(self, button: discord.ui.Button, interaction: discord.Interaction):
+    @discord.ui.button(label="Launch Server 1", style=discord.ButtonStyle.green)
+    async def button_1(self, button: discord.ui.Button, interaction: discord.Interaction):
         #t_launcher(1)
         await interaction.response.edit_message(content=f"This is an edited button response!")
 
-    @discord.ui.button(label="Launch Server 2", style=discord.ButtonStyle.gray)
-    async def gray_button(self, button: discord.ui.Button, interaction: discord.Interaction):
+    @discord.ui.button(label="Launch Server 2", style=discord.ButtonStyle.green)
+    async def button_2(self, button: discord.ui.Button, interaction: discord.Interaction):
         #t_launcher(2)
         await interaction.response.edit_message(content=f"This is an edited button response!")
 
-    @discord.ui.button(label="Launch Server 3", style=discord.ButtonStyle.gray)
-    async def gray_button(self, button: discord.ui.Button, interaction: discord.Interaction):
+    @discord.ui.button(label="Launch Server 3", style=discord.ButtonStyle.green)
+    async def button_3(self, button: discord.ui.Button, interaction: discord.Interaction):
         #t_launcher(3)
         await interaction.response.edit_message(content=f"This is an edited button response!")
 
@@ -70,6 +70,11 @@ tok = open("token.txt", "r")
 channelID = open("channelID.txt", "r")
 usableCID = int(channelID.read())
 
+urlFile = open("url.txt", "r")
+url = urlFile.read()
+
+portFile = open("port.txt", "r")
+PORT = int(portFile.read())
 
 """Bot stuff starts here"""
 
@@ -98,7 +103,7 @@ async def instance_monitor():
 
     if currentInstances > activeInstances:
         channel = bot.get_channel(usableCID)
-        await channel.send('placeholder: server launched')
+        await channel.send('Server Launched Successfully!')
 
 
 
@@ -133,7 +138,8 @@ async def launch(ctx, *args):
 
                 #t.start()
                 if isLaunched == 0:
-                    await ctx.send(f'Launching Server {a}. Please wait...')
+                    link = f'{url}:{PORT + a}'
+                    await ctx.send(f'Launching Server {a} with the link {link}. Please wait...')
                     t_launcher(args[0])
                 else:
                     await ctx.send(f'Server {a} has already been launched')
@@ -145,10 +151,10 @@ async def launch(ctx, *args):
                 await ctx.send(f'Invalid Server number {a}. Valid range: 0-3')
 
         else:
-            await ctx.send('Invalid Server number, please only input numbers.')
+            await ctx.send('Invalid Server number. please only input numbers.')
 
     else:
-        await ctx.send('Invalid Launch command, too many arguments')
+        await ctx.send('Invalid Launch command. too many arguments')
 
 
 @bot.command()
@@ -167,24 +173,27 @@ async def exit(ctx, *args):
             # docker.compose.up([f'server_{args[0]}'])
 
             if -1 < a < 4:
+                isLaunched = len(docker.ps(filters={('name', f'server_{a}')}))
+
+                if isLaunched > 0:
+                    # THE ORDER IS IMPORTANT
+                    # docker compose down stops the container, which frees up the thread running foundry
+                    docker.compose.down(f'server_{a}')
 
 
-                # THE ORDER IS IMPORTANT
-                # docker compose down stops the container, which frees up the thread running foundry
-                docker.compose.down(f'server_{a}')
-
-
-                docker.compose.up([f'cleanup_{a}'])
-                docker.compose.down([f'cleanup_{a}'])
+                    docker.compose.up([f'cleanup_{a}'])
+                    docker.compose.down([f'cleanup_{a}'])
+                else:
+                    await ctx.send(f'Server {a} is not running')
 
             else:
-                await ctx.send('invalid server number. 0-3')
+                await ctx.send(f'Invalid Server number {a}. Valid range: 0-3')
 
         else:
-            await ctx.send('invalid server number, please only input numbers.')
+            await ctx.send('Invalid Server number. please only input numbers.')
 
     else:
-        await ctx.send('invalid exit command, too many arguments')
+        await ctx.send('Invalid Exit command. too many arguments')
 
 @bot.command()
 async def status(ctx):

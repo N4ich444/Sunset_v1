@@ -1,4 +1,10 @@
-
+token.txt
+channelID.txt
+url.txt
+port.txt
 /token.txt
 /channelID.txt
+/url.txt
+/port.txt
 foundryapp/
+config/
