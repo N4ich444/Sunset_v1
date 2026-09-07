@@ -140,10 +140,10 @@ async def launch(ctx, *args):
 
 
     if len(args) < 1:
-        for i in range(0, 4):
-            update_status(i)
+        #for i in range(0, 4):
+            #update_status(i)
 
-        await ctx.send(f'Launch a Server', view=LaunchButtonPanel())
+        await ctx.send(f'buttons are not supported yet')
 
 
     elif len(args) == 1:
@@ -187,7 +187,8 @@ async def launch(ctx, *args):
 @bot.command()
 async def exit(ctx, *args):
     if len(args) < 1:
-        await ctx.send(f'placeholder exit panel ')
+        await ctx.send(f'buttons are not supported yet')
+
 
 
     elif len(args) == 1:
@@ -211,7 +212,7 @@ async def exit(ctx, *args):
                         docker.compose.down(f'server_{a}')
 
 
-                        docker.compose.up([f'cleanup_{a}'])
+                        docker.compose.up([f'cleanup_{a}'],build=True,force_recreate=True)
                         docker.compose.down([f'cleanup_{a}'])
 
                         isShutDown = len(docker.ps(filters={('name', f'server_{a}')}))

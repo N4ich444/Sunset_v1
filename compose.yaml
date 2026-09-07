@@ -127,6 +127,7 @@ services:
     volumes:
       - userdata_fserv_slot_0:/usr/src/app/userdata
       - userdata_fserv_share:/usr/src/app/shareddata
+      - userdata_fserv_backup:/usr/src/app/backupdata
 
     deploy:
       resources:
@@ -148,6 +149,7 @@ services:
     volumes:
       - userdata_fserv_slot_1:/usr/src/app/userdata
       - userdata_fserv_share:/usr/src/app/shareddata
+      - userdata_fserv_backup:/usr/src/app/backupdata
 
     deploy:
       resources:
@@ -169,6 +171,7 @@ services:
     volumes:
       - userdata_fserv_slot_2:/usr/src/app/userdata
       - userdata_fserv_share:/usr/src/app/shareddata
+      - userdata_fserv_backup:/usr/src/app/backupdata
 
     deploy:
       resources:
@@ -191,6 +194,7 @@ services:
     volumes:
       - userdata_fserv_slot_3:/usr/src/app/userdata
       - userdata_fserv_share:/usr/src/app/shareddata
+      - userdata_fserv_backup:/usr/src/app/backupdata
 
     deploy:
       resources:
@@ -225,6 +229,9 @@ volumes:
     external: true
     name: userdata_fserv_share
 
+  userdata_fserv_backup:
+    external: true
+    name: userdata_fserv_backup
 
 
 # The commented out section below is an example of how to define a PostgreSQL
