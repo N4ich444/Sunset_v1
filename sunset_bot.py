@@ -76,9 +76,10 @@ class LaunchButtonPanel(discord.ui.View):
         #t_launcher(3)
         await interaction.response.edit_message(content=f"This is an edited button response!")
 
-
+#command prefix
 bot = commands.Bot(command_prefix='!', intents=intents)
 
+#Note int cast is to be able to use them as discord IDs
 #reads token.txt
 tok = open("token.txt", "r")
 
@@ -91,6 +92,9 @@ url = urlFile.read()
 
 portFile = open("port.txt", "r")
 PORT = int(portFile.read())
+
+admFile = open("admin_user.txt", "r")
+adminUser = int(admFile.read())
 
 """Bot stuff starts here"""
 
@@ -106,6 +110,7 @@ async def on_ready():
 @bot.event
 async def setup_hook() -> None:
     instance_monitor.start()
+
 
 #monitors docker instances
 
@@ -250,7 +255,7 @@ async def status(ctx):
             s = s + f'Server {ctr}: Offline\n'
         ctr += 1
 
-    await ctx.send(f'{s}Details: ||{docker.ps()}||')
+    #await ctx.send(f'{s}Details: ||{docker.ps()}||')
 
     #await ctx.send(f"{len(docker.ps())} {docker.ps()}")
 
@@ -271,6 +276,26 @@ async def emergency_shutdown(ctx):
     except Exception as e:
         await ctx.send(f'Error shutting down!\n Details: ||{e}||')
 
+
+@bot.hybrid_command(description='How to use this bot')
+async def bot_help(ctx):
+    await ctx.send('Valid commands: launch, exit, status, emergency_shutdown\n!launch 0-3: will launch server of specified number and send link\n!exit 0-3: will exit server if it is running\n!status: shows the status of all the servers\n!emergency_shutdown: kills all servers. use only when directed.')
+
+"""Special commands"""
+
+#sync command tree
+@bot.command()
+async def command_sync(ctx):
+    if ctx.author.id == adminUser:
+        await bot.tree.sync()
+        await ctx.send('Command tree synced.')
+    else:
+        await ctx.send('You are not allowed to use this command.')
+
+#TODO: restore world function
+@bot.command()
+async def restore(ctx, *args):
+    pass
 
 #botThread.start()
 #botThread.join()

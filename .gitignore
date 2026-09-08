@@ -2,9 +2,13 @@ token.txt
 channelID.txt
 url.txt
 port.txt
+role.txt
+admin_user.txt
 /token.txt
 /channelID.txt
 /url.txt
 /port.txt
+/role.txt
+/admin_user.txt
 foundryapp/
 config/
