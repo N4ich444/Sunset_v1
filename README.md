@@ -4,22 +4,21 @@ Requires the NodeJS portable version of Foundry Virtual Tabletop. Rename that fo
 Preset passcode is 'admin' in adminpass. Passcodes can be created by downloading the admin.txt on a live docker container
 
 Packages required for this to work:
-
-Python on Whales
-Discord.py
-Docker
+- Python on Whales
+- Discord.py
+- Docker
 
 Volumes you need to create for this to work:
 
-userdata_fserv_backup
-userdata_fserv_share
-userdata_fserv_slot_(0-3)
+- userdata_fserv_backup
+- userdata_fserv_share
+- userdata_fserv_slot_(0-3)
 
 Files you need to create:
 
-token.txt - discord bot token
-url.txt - url
-port.txt - first port in range
-admin_user.txt - discord id of user
-channelID.txt - channel id of bot channel
+- token.txt - discord bot token
+- url.txt - url
+- port.txt - first port in range
+- admin_user.txt - discord id of user
+- channelID.txt - channel id of bot channel
 
