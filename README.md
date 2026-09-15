@@ -8,7 +8,7 @@ Packages required for this to work:
 - Discord.py
 - Docker
 
-Volumes you need to create for this to work:
+Docker Volumes you need to create for this to work:
 
 - userdata_fserv_backup
 - userdata_fserv_share
