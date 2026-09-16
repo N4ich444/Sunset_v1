@@ -22,3 +22,4 @@ Files you need to create:
 - admin_user.txt - discord id of user
 - channelID.txt - channel id of bot channel
 
+As of 2026 it is still maintained by me Alan Kuang until the full documentation will be released and my graduation from Western.
